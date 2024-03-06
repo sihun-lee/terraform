@@ -1,0 +1,52 @@
+resource "aws_launch_template" "example" {
+  name                   = "aws20-example-template"
+  image_id               = "ami-01bdfa88de8e62e35"
+  instance_type          = "t2.micro"
+  key_name               = "aws20-key"
+  vpc_security_group_ids = [aws_security_group.web.id, aws_security_group.ssh.id]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_autoscaling_group" "example" {
+  # availability_zones = ["ap-northeast-2a", "ap-northeast-ec"]
+  vpc_zone_identifier = [var.subnet_2a, var.subnet_2c]
+  name                = "aws20-asg-example"
+  max_size            = 2
+  min_size            = 1
+  desired_capacity    = 1
+
+  launch_template {
+    id      = aws_launch_template.example.id
+    version = "$Latest"
+  }
+  tag {
+    key                 = "Name"
+    value               = "aws20-asg-example"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_security_group" "web" {
+  name = "aws20-example-web"
+  vpc_id = var.vpc_id
+  ingress {
+    from_port   = var.web_port
+    to_port     = var.web_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "ssh" {
+  name = "aws20-example-ssh"
+  vpc_id = var.vpc_id
+  ingress {
+    from_port   = var.ssh_port
+    to_port     = var.ssh_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
